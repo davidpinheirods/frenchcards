@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards de Francês</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main id="app">
+        <div class="modo-container">
+            <h1>
+                <a href="#" id="logo-link">
+                    <span class="title-color-bleu">Fren</span><span class="title-color-blanc">ch</span><span class="title-color-rouge">cards</span>
+                </a>
+            </h1>
+            <div class="btn-group">
+                <button id="btnEstudar" class="btn-modo">Todos os cards</button>
+                <button id="btnRevisao" class="btn-modo">Revisão</button>
+                <button id="theme-toggle-button" class="btn-modo btn-theme">🌙</button>
+            </div>
+        </div>
+
+        <div id="message-area" class="message hidden"></div>
+        
+        <div id="card-scene" class="scene hidden">
+            <div id="card" class="card">
+                <div class="card-face card-front"></div>
+                <div class="card-face card-back"></div>
+            </div>
+        </div>
+
+        <div id="evaluation-buttons" class="evaluation-container disabled hidden">
+            <button class="btn-eval" data-eval-id="1">Fácil</button>
+            <button class="btn-eval" data-eval-id="2">Médio</button>
+            <button class="btn-eval" data-eval-id="3">Difícil</button>
+            <button class="btn-eval" data-eval-id="4">Não Lembro</button>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
