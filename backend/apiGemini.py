@@ -15,7 +15,7 @@ def configure_gemini_api() -> bool:
         api_key = os.getenv("GOOGLE_API_KEY")
         if api_key is None:
             raise ValueError("A variável de ambiente GOOGLE_API_KEY não está definida.")
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=api_key) # type: ignore
         logger.info("API do Gemini configurada com sucesso!")
         return True
     except ValueError as e:
@@ -31,7 +31,7 @@ def list_available_models():
     """
     logger.debug("\nVerificando modelos disponíveis...")
     try:
-        for m in genai.list_models():
+        for m in genai.list_models(): # type: ignore
             if 'generateContent' in m.supported_generation_methods:
                 logger.info(f"- {m.name} (Suporta generateContent)")
             else:
@@ -46,7 +46,7 @@ def get_gemini_response(prompt_text, model_name='gemini-2.5-flash-preview-05-20'
     Envia um prompt para o modelo Gemini e retorna a resposta.
     """
     try:
-        model = genai.GenerativeModel(model_name)
+        model = genai.GenerativeModel(model_name) # type: ignore
         logger.info(f"\nEnviando prompt para o {model_name}... Por favor, aguarde.")
         response = model.generate_content(prompt_text)
         return response.text
