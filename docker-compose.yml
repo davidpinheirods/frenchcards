@@ -1,6 +1,3 @@
-# docker-compose.yml
-version: '3.8'
-
 services:
   db:
     image: mysql:8.0
@@ -39,7 +36,8 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
@@ -50,22 +48,6 @@ services:
     depends_on:
       - backend
 
-  db_seeder:
-    build: ./backend
-    platform: linux/amd64
-    container_name: frenchcards-db-seeder
-    environment:
-      DB_HOST: db
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
-    command: python criarDatabase.py
-    depends_on:
-      db:
-        condition: service_healthy
-
-  # --- NOVO SERVIÇO ADICIONADO ---
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: frenchcards-phpmyadmin
@@ -78,6 +60,6 @@ services:
       - "8081:80" # Acesse o phpMyAdmin em http://localhost:8081
     depends_on:
       - db
-
+  
 volumes:
   db-data:

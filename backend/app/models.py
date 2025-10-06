@@ -12,6 +12,8 @@ class Flashcard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     frase = db.Column(db.String(255), nullable=False, unique=True)
     traducao = db.Column(db.String(255), nullable=False)
+    palavra_chave = db.Column(db.String(100), nullable=False, index=True)
+    tempo_verbal = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):
         """
@@ -21,7 +23,9 @@ class Flashcard(db.Model):
         return {
             'id': self.id,
             'frase': self.frase,
-            'traducao': self.traducao
+            'traducao': self.traducao,
+            'palavra_chave': self.palavra_chave,
+            'tempo_verbal': self.tempo_verbal
         }
 
 class AvaliacaoTipo(db.Model):
