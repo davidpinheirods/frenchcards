@@ -1,0 +1,10 @@
+Flask==2.3.2
+gunicorn==20.1.0
+Flask-Cors
+mysql-connector-python
+google-generativeai
+python-dotenv
+Flask-SQLAlchemy
+Flask-Migrate
+PyMySQL
+cryptography

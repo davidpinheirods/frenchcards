@@ -1,0 +1,14 @@
+# Arquivos de Cache do Python
+__pycache__/
+*.pyc
+
+# Arquivos de ambiente - NUNCA ENVIE SUAS SENHAS!
+.env
+
+# Diretórios de configuração de editores de código
+.vscode/
+.idea/
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db

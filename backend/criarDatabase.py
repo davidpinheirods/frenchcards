@@ -1,120 +1,98 @@
-from processaCsv import lerCelulaCsv
-from apiGemini import apiGemini
-import mysql.connector
-from config.db import db_connector
 import json
+from app.utils.processaCsv import lerCelulaCsv
+from app.utils.apiGemini import apiGemini
+from app import create_app, db
+from app.models import Flashcard, AvaliacaoTipo
 
+# Cria uma instância da aplicação para estabelecer o contexto
+app = create_app()
 
 def limpar_dividir_json(json_sujo_str: str) -> tuple[str, str]:
+    """
+    Extrai o objeto JSON de uma string que pode conter texto adicional
+    e retorna os valores das chaves 'frase' e 'traducao'.
+    """
     try:
         start_index = json_sujo_str.find('{')
         end_index = json_sujo_str.rfind('}')
-
         if start_index == -1 or end_index == -1:
-            raise json.JSONDecodeError("Não foi possível encontrar um objeto JSON válido na string.", json_sujo_str, 0)
-
+            raise json.JSONDecodeError("Não foi possível encontrar um objeto JSON válido.", json_sujo_str, 0)
+        
         json_limpo_str = json_sujo_str[start_index : end_index + 1]
-
-        # Decodifica a string JSON limpa para um dicionário Python
         dados_json = json.loads(json_limpo_str)
-
-        # Verifica se o JSON tem as chaves esperadas e se contém exatamente duas partes
-        if not isinstance(dados_json, dict):
-            raise ValueError("O JSON limpo não é um objeto (dicionário).")
         
-        if "frase" not in dados_json or "traducao" not in dados_json:
-             raise KeyError("O JSON deve conter as chaves 'frase' e 'traducao'.")
-        
-        if len(dados_json) != 2:
-            # Isso é uma suposição baseada no seu exemplo. Se o JSON puder ter mais chaves
-            # e você ainda quiser apenas 'frase' e 'traducao', esta verificação pode ser removida.
-            print(f"Atenção: O JSON contém mais de duas chaves, mas apenas 'frase' e 'traducao' serão retornadas. Chaves encontradas: {list(dados_json.keys())}")
-
-
-        # Divide o JSON em duas partes
-        parte1 = dados_json["frase"]
-        parte2 = dados_json["traducao"]
-
-        return parte1, parte2
-
-    except json.JSONDecodeError as e:
-        print(f"Erro ao decodificar JSON: {e}")
+        return dados_json["frase"], dados_json["traducao"]
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Erro ao processar JSON: {e}")
+        # Lança a exceção para que a função chamadora saiba que falhou
         raise
-    except KeyError as e:
-        print(f"Erro: Chave ausente no JSON: {e}")
-        raise
-    except ValueError as e:
-        print(f"Erro de validação do JSON: {e}")
-        raise
-    except Exception as e:
-        print(f"Ocorreu um erro inesperado: {e}")
-        raise 
 
-def salvar_na_db(frase: str, traducao: str):
-    conn = None
-    cursor = None
+def popular_tipos_avaliacao():
+    """
+    Garante que a tabela avaliacaotipo contenha os valores padrão.
+    Só insere os tipos se eles ainda não existirem.
+    """
+    print("Verificando e populando tipos de avaliação...")
+    tipos = {1: 'Fácil', 2: 'Médio', 3: 'Difícil', 4: 'Não Lembro'}
+    
+    for tipo_id, tipo_str in tipos.items():
+        # Verifica se um tipo com este ID já existe
+        existe = AvaliacaoTipo.query.get(tipo_id)
+        if not existe:
+            novo_tipo = AvaliacaoTipo(id=tipo_id, avaliacao=tipo_str)
+            db.session.add(novo_tipo)
+            print(f"Adicionado tipo: '{tipo_str}'")
+            
+    db.session.commit()
+    print("Tipos de avaliação finalizados.")
+
+def salvar_flashcard_na_db(frase: str, traducao: str):
+    """Salva um novo flashcard no banco de dados usando o ORM."""
     try:
-        # Obtém a conexão com o banco de dados usando sua função importada
-        conn = db_connector()
-        if conn is None:
-            print("Não foi possível estabelecer conexão com o banco de dados.")
+        # Verifica se já existe um card com esta frase
+        card_existente = Flashcard.query.filter_by(frase=frase).first()
+        if card_existente:
+            print(f"Card já existe no banco: '{frase}'. Pulando.")
             return
 
-        cursor = conn.cursor()
-
-        sql = "INSERT INTO flashcards (frase, traducao) VALUES (%s, %s)"
-        
-        # Os valores a serem inseridos
-        valores = (frase, traducao)
-
-        # Executa a query
-        cursor.execute(sql, valores)
-
-        # Confirma a transação
-        conn.commit()
-        print("Dados salvos com sucesso no banco de dados!")
-
-    except mysql.connector.Error as err:
-        print(f"Erro ao salvar no MySQL: {err}")
-        # Reverte a transação em caso de erro
-        if conn:
-            conn.rollback()
+        novo_card = Flashcard(frase=frase, traducao=traducao)
+        db.session.add(novo_card)
+        db.session.commit()
+        print(f"Card salvo com sucesso: '{frase}'")
     except Exception as e:
-        print(f"Ocorreu um erro inesperado: {e}")
-    finally:
-        # Garante que o cursor e a conexão sejam fechados
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        print(f"Ocorreu um erro ao salvar o card: {e}")
+        db.session.rollback()
 
 def main():
     """
-    Função principal para orquestrar o processamento.
+    Função principal que orquestra a leitura do CSV, chamada da API
+    e gravação dos dados no banco de dados.
     """
-    indice_atual = 2
-    while True:
-        # 1. Obter a string de processarCsv.py
-        saida_csv = lerCelulaCsv("docs/palavrasFrances.csv",indice_atual)
+    # Executa toda a lógica dentro do contexto da aplicação Flask
+    with app.app_context():
+        # 1. Garante que os tipos de avaliação existam
+        popular_tipos_avaliacao()
 
-        # 2. Verificar se ainda há dados para processar
-        if not saida_csv: # Se a string for vazia, significa que não há mais dados
-            print("Fim do arquivo CSV. Todas as linhas processadas.")
-            break
+        # 2. Processa o arquivo CSV para criar novos flashcards
+        indice_atual = 2
+        print("\nIniciando processamento do arquivo CSV...")
+        while True:
+            palavra_frances = lerCelulaCsv("docs/palavrasFrances.csv", indice_atual)
+            
+            if not palavra_frances:
+                print("\nFim do arquivo CSV. Processamento concluído.")
+                break
 
-        # 3. Incrementar o índice para a próxima iteração
-        indice_atual += 1
+            print(f"\nProcessando linha {indice_atual}: '{palavra_frances}'")
+            
+            try:
+                resposta_gemini = apiGemini(palavra_frances)
+                frase_gerada, traducao_gerada = limpar_dividir_json(resposta_gemini)
+                salvar_flashcard_na_db(frase_gerada, traducao_gerada)
+            except Exception as e:
+                print(f"Falha ao processar a palavra '{palavra_frances}'. Erro: {e}. Passando para a próxima.")
 
-        # 4. Dividindo json e salvando no banco de dados a saida
-        #print(dividir_e_limpar_json(apiGemini(saida_csv)))
-        #print(limpar_dividir_json(apiGemini(saida_csv)))
-
-        frase_result, traducao_result = limpar_dividir_json(apiGemini(saida_csv))
-        print(f"{frase_result} \n {traducao_result}")
-
-        salvar_na_db(frase_result, traducao_result)
-        
-
+            indice_atual += 1
 
 if __name__ == "__main__":
     main()
