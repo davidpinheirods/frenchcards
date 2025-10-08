@@ -13,9 +13,18 @@ def get_study_session_service():
 
     if cards_para_aprender:
         return [card.to_dict() for card in cards_para_aprender]
-    
-    # Se não há novos, pega os que precisam de revisão
-    cards_para_revisar = Flashcard.query.join(Avaliacao).filter(Avaliacao.avaliacao_id > 1).order_by(Avaliacao.avaliacao_id.desc(), Avaliacao.data_avaliacao.asc()).all()
+
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+
+    cards_para_revisar = Flashcard.query.join(Avaliacao).filter(
+        or_(
+            Avaliacao.avaliacao_id > 1,
+            db.and_(
+                Avaliacao.avaliacao_id == 1,
+                Avaliacao.data_avaliacao <= seven_days_ago
+            )
+        )
+    ).order_by(Avaliacao.avaliacao_id.desc(), Avaliacao.data_avaliacao.asc()).all()
 
     if cards_para_revisar:
         return [card.to_dict() for card in cards_para_revisar]
@@ -43,6 +52,16 @@ def get_review_queue_service():
     Busca todos os flashcards marcados para revisão (não são 'Fácil').
     A ordem é por dificuldade (mais difíceis primeiro) e depois por data (mais antigos primeiro).
     """
-    cards_para_revisar = Flashcard.query.join(Avaliacao).filter(Avaliacao.avaliacao_id > 1).order_by(Avaliacao.avaliacao_id.desc(), Avaliacao.data_avaliacao.asc()).all()
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+
+    cards_para_revisar = Flashcard.query.join(Avaliacao).filter(
+        or_(
+            Avaliacao.avaliacao_id > 1,
+            db.and_(
+                Avaliacao.avaliacao_id == 1,
+                Avaliacao.data_avaliacao <= seven_days_ago
+            )
+        )
+    ).order_by(Avaliacao.avaliacao_id.desc(), Avaliacao.data_avaliacao.asc()).all()
     
     return [card.to_dict() for card in cards_para_revisar]
