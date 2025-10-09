@@ -1,5 +1,8 @@
 # backend/app/services.py
+from datetime import datetime, timedelta
+from sqlalchemy import or_
 from app.models import db, Flashcard, Avaliacao
+
 
 def get_all_flashcards_service():
     """Retorna todos os flashcards."""

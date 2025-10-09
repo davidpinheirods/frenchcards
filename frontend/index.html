@@ -19,11 +19,21 @@
                 <button id="btnEstudar" class="btn-modo">Todos os Cards</button>
                 <button id="btnRevisao" class="btn-modo">Revisão</button>
                 <button id="theme-toggle-button" class="btn-modo btn-theme">🌙</button>
+                <button id="btn-toggle-view" class="btn-modo btn-icon hidden">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="8" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <rect x="13" y="3" width="8" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
             </div>
         </div>
 
         <div id="message-area" class="message hidden"></div>
         
+        <div class="card-info-container hidden">
+            <div id="card-counter" class="counter"></div>
+            </div>
+
         <div id="card-scene" class="scene hidden">
             <div id="card" class="card">
                 <div class="card-face card-front"></div>

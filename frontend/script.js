@@ -12,8 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardBack = document.querySelector('.card-back');
     const evaluationButtons = document.getElementById('evaluation-buttons');
     const themeToggleButton = document.getElementById('theme-toggle-button');
-    // NOVO: Referência ao link do logo
     const logoLink = document.getElementById('logo-link');
+    const cardCounter = document.getElementById('card-counter');
+    const cardInfoContainer = document.querySelector('.card-info-container'); // NOVO: Referência ao novo contêiner
+    const btnToggleView = document.getElementById('btn-toggle-view');
 
 
     // --- LÓGICA DO TEMA (MODO NOTURNO) ---
@@ -42,19 +44,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCards = [];
     let currentIndex = 0;
 
-    // NOVO: Função para resetar a visualização para a tela inicial
     function resetAppToHomeScreen() {
-        mainApp.classList.remove('study-active'); // Remove o estado de estudo ativo
+        mainApp.classList.remove('study-active');
         
-        // Esconde todos os elementos de estudo
         cardScene.classList.add('hidden');
-        evaluationButtons.classList.add('hidden');
         messageArea.classList.add('hidden');
+        cardInfoContainer.classList.add('hidden'); // Esconde o contêiner de info (com contador)
+        evaluationButtons.classList.add('hidden'); // Esconde os botões de avaliação
+        btnToggleView.classList.add('hidden'); // Esconde o botão de toggle view
+        btnToggleView.classList.remove('active'); // Garante que o estado ativo seja removido
+        cardScene.classList.remove('side-by-side-active'); // Reseta a view lado a lado
     }
 
     async function fetchCards(endpoint) {
         messageArea.classList.remove('hidden');
         showMessage('Carregando cards...');
+        cardInfoContainer.classList.add('hidden'); // Garante que o contador esteja escondido ao carregar
+        evaluationButtons.classList.add('hidden'); // Garante que os botões de avaliação estejam escondidos
 
         try {
             const response = await fetch(API_URL + endpoint);
@@ -66,6 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 showMessage(message);
                 cardScene.classList.add('hidden');
                 evaluationButtons.classList.add('hidden');
+                btnToggleView.classList.add('hidden'); // Esconde o botão se não houver cards
+                btnToggleView.classList.remove('active'); // Reseta o estado
+                cardScene.classList.remove('side-by-side-active'); // Reseta a view
             } 
             else {
                 currentCards = data;
@@ -73,7 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 mainApp.classList.add('study-active');
                 messageArea.classList.add('hidden');
                 cardScene.classList.remove('hidden'); 
-                evaluationButtons.classList.remove('hidden');
+                cardInfoContainer.classList.remove('hidden'); // Mostra o contêiner de info (com contador)
+                evaluationButtons.classList.remove('hidden'); // Mostra os botões de avaliação
+                btnToggleView.classList.remove('hidden'); // Mostra o botão de toggle view
                 displayCurrentCard();
             }
         } catch (error) {
@@ -86,18 +97,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentCard = currentCards[currentIndex];
             cardFront.textContent = currentCard.frase;
             cardBack.textContent = currentCard.traducao;
+            
+            // LÓGICA DE RESET DO ESTADO DO CARD
             card.classList.remove('is-flipped');
-            evaluationButtons.classList.add('disabled');
+            // NOVO: Apenas se o modo lado a lado NÃO estiver ativo por padrão ao carregar
+            // Se você quiser que o modo lado a lado persista entre os cards, remova as duas linhas abaixo
+            cardScene.classList.remove('side-by-side-active'); 
+            btnToggleView.classList.remove('active'); // Desativa o feedback visual do botão
+
+            evaluationButtons.classList.add('disabled'); // Desabilita botões de avaliação até virar o card
+            cardCounter.textContent = `${currentIndex + 1} / ${currentCards.length}`;
         } else {
             showMessage('Sessão finalizada!');
             cardScene.classList.add('hidden');
-            evaluationButtons.classList.add('hidden');
+            cardInfoContainer.classList.add('hidden'); // Esconde ao finalizar
+            evaluationButtons.classList.add('hidden'); // Esconde ao finalizar
+            btnToggleView.classList.add('hidden'); // Esconde o botão ao finalizar
+            btnToggleView.classList.remove('active'); // Reseta o estado
+            cardScene.classList.remove('side-by-side-active'); // Reseta a view
         }
     }
     
     function flipCard() {
-        card.classList.toggle('is-flipped');
-        evaluationButtons.classList.remove('disabled');
+        // Permitir virar apenas se NÃO estiver no modo lado a lado
+        if (!cardScene.classList.contains('side-by-side-active')) {
+            card.classList.toggle('is-flipped');
+            // Apenas habilita os botões de avaliação se o card estiver virado
+            evaluationButtons.classList.toggle('disabled', !card.classList.contains('is-flipped'));
+        }
     }
 
     async function handleEvaluation(evaluationId) {
@@ -129,7 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnEstudar.addEventListener('click', () => fetchCards('/estudar'));
     btnRevisao.addEventListener('click', () => fetchCards('/flashcards/revisao'));
+
+    // CORREÇÃO: Restaurado para a versão simples que chama a função flipCard diretamente.
     card.addEventListener('click', flipCard);
+
     evaluationButtons.addEventListener('click', (event) => {
         const evalId = event.target.dataset.evalId;
         if (evalId) {
@@ -137,9 +167,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // NOVO: Event listener para o clique no logo
+    btnToggleView.addEventListener('click', () => {
+        // Se o modo lado a lado for ativado, garanta que o card esteja "virado" logicamente
+        // para que a face de trás seja visível.
+        if (!cardScene.classList.contains('side-by-side-active')) {
+            card.classList.add('is-flipped'); // Garante que a face de trás esteja "ativa"
+            evaluationButtons.classList.remove('disabled'); // Habilita os botões de avaliação
+        } else {
+            // Se o modo lado a lado for desativado, o card volta ao normal
+            // e os botões de avaliação só devem ser habilitados se o card estiver virado
+            evaluationButtons.classList.toggle('disabled', !card.classList.contains('is-flipped'));
+        }
+
+        cardScene.classList.toggle('side-by-side-active');
+        btnToggleView.classList.toggle('active'); // Alterna o estado visual do botão
+    });
+
     logoLink.addEventListener('click', (event) => {
-        event.preventDefault(); // Impede que o link recarregue a página
+        event.preventDefault();
         resetAppToHomeScreen();
     });
 });
