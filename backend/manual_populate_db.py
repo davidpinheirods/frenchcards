@@ -59,7 +59,7 @@ def main():
             
             indice_atual = 2
             while True:
-                palavra_frances = lerCelulaCsv("docs/palavrasFrances.csv", indice_atual)
+                palavra_frances = lerCelulaCsv("docs/proximasPalavrasFrances.csv", indice_atual)
                 
                 if not palavra_frances:
                     print(f"--- Fim do CSV para o tempo verbal: [{tempo_verbal}] ---")
